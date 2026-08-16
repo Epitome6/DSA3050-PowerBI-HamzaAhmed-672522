@@ -66,3 +66,40 @@
    * Transformation: Added a Custom Column named ShippingDays calculated as Duration.Days(\[Ship Date] - \[Order Date]).
    * Reason: Enables analysis of fulfillment performance by Ship Mode, Region, or Order Priority.
    * Result: A new numeric column supporting logistics-focused KPIs and visuals.
+### DATA MODELING
+
+
+
+FactOrders contains transactional information — one row per order line item — and forms the centre of the model. DimCustomer, DimProduct, DimLocation, and DimDate provide descriptive attributes used to filter and group the fact table. One-to-many relationships were established between each dimension and the fact table, with a single cross-filter direction flowing from each dimension into the fact table.
+
+
+
+Why FactOrders was selected as the fact table: it is the most granular table available (51,280 order-line rows) and holds every core numeric measure the analysis depends on ; Sales, Quantity, Discount, Profit, and Shipping Cost.
+
+
+
+Why each dimension was created:
+
+
+
+* DimCustomer — needed to analyze profitability and behaviour by customer segment, using the verified Customer ID as the key (not Customer Name, after the mismatch investigated during Power Query).
+* DimProduct — needed for category and sub-category level profitability analysis, one of the project's core analytical questions.
+* DimLocation — needed given the dataset's global scope (147 countries, 7 markets), and specifically to resolve the Region/Market ambiguity discovered during cleaning.
+* DimDate — required for correct time-intelligence DAX (Previous Year Sales, YoY Growth%) and for consistent Year/Quarter/Month slicers not limited only to dates with a transaction.
+
+
+
+Relationships, cardinality, and filter direction: all four dimensions relate to FactOrders one-to-many, with a single cross-filter direction from dimension to fact — the standard star-schema pattern, keeping every filter path unambiguous without needing any bidirectional relationships.
+
+
+
+Modelling challenges encountered:
+
+
+
+* Region/Market ambiguity — Region values are not globally unique. Resolved by building DimLocation's key from the full Market+Region+Country+State+City combination rather than Region alone.
+* Customer Name vs Customer ID — 795 customer names mapped to more than one Customer ID. Resolved by using CustomerID, not CustomerName, as the dimension key.
+* Product ID is not reliably unique — 457 Product IDs (\~4.4% of all products) are each attached to two different products. Resolved the same way as the Region/Market issue: built a composite ProductKey (Product ID + Product Name) instead of trusting Product ID alone, avoiding an unintended many-to-many relationship.
+* Ship Date — the fact table has two dates (Order Date, Ship Date), but only Order Date is related to DimDate. Formally relating both would require marking one relationship inactive and invoking USERELATIONSHIP() in every Ship-Date-based measure ,added complexity not justified by this project's core questions, so Ship Date stays a plain fact attribute, used only to calculate ShippingDays.
+
+
