@@ -145,3 +145,43 @@ Modelling challenges encountered:
    * Filter context: Inherits whatever context \[Profit Margin %] is evaluated under, so the label updates correctly for the overall business or any sliced view.
    * Used in: Executive Overview (colour-coded KPI card) and potentially for conditional formatting on Diagnostic page tables.
 
+### Dashboard Design \& Storytelling
+
+Report Structure: Overview → Detailed Analysis → Deeper Insights
+The report is organised across three pages that move from headline performance to root-cause diagnosis.
+
+
+
+Page 1: Executive Overview
+
+* Purpose: Allow a manager to judge overall health in a few seconds, regardless of the active filter context.
+* Design choices:
+
+  * Total Sales, Total Profit, and Profit Margin % are placed together as KPI cards so the relationship between volume and profitability is visible at a glance.
+  * Performance Tier converts the margin percentage into a plain-language label (“Loss-Making”, “Low Margin”, “Healthy”, “Strong”).
+  * The Sales-and-Profit trend line is deliberately placed here (not on the diagnostic page) so the viewer notices that the two lines do not always move together, raising the question the rest of the report answers.
+  * Category and Segment breakdowns establish which parts of the business are largest, giving later pages a baseline for comparison.
+
+
+
+Page 2: Product \& Category Analysis
+
+* Purpose: Test whether size and profitability move together at the product level.
+* Design choices:
+
+  * The Sub-Category table is sorted by Profit Margin % so the weakest performers surface at the top instead of being buried alphabetically.
+  * Average Discount % is placed directly beside the table so readers can check, sub-category by sub-category, whether heavier discounting lines up with thinner margins.
+  * A scatter chart provides an independent spatial view of the same relationship — normal sub-categories cluster together; outliers stand out immediately without reading numbers.
+  * The Product Name chart repeats the comparison at the most granular level the model supports.
+
+
+
+Page 3: Profitability Analysis (Diagnostic)
+
+* Purpose: Directly test the discounting hypothesis rather than leave it implied.
+* Design choices:
+
+  * Overall Profit Margin % is compared side-by-side with High-Discount Profit Margin % (transactions above 30% discount). The gap between the two numbers is the strongest available evidence for or against the central hypothesis.
+  * A regional breakdown checks whether the discounting effect is universal or concentrated in specific Markets.
+  * The Key Influencers visual adds independent, model-driven evidence — Power BI searches the data on its own rather than confirming a pre-existing hypothesis.
+  * The report closes with a ranked opportunity table sorted by Lost Sales Value (Market × Category × Segment). The combination costing the business the most sits at the top, turning a general observation into a specific, actionable finding that directly addresses the business problem defined in Section A.
