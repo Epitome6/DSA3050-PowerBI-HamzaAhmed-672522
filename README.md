@@ -66,9 +66,7 @@
    * Transformation: Added a Custom Column named ShippingDays calculated as Duration.Days(\[Ship Date] - \[Order Date]).
    * Reason: Enables analysis of fulfillment performance by Ship Mode, Region, or Order Priority.
    * Result: A new numeric column supporting logistics-focused KPIs and visuals.
-### DATA MODELING
-
-
+### Data Modeling
 
 FactOrders contains transactional information — one row per order line item — and forms the centre of the model. DimCustomer, DimProduct, DimLocation, and DimDate provide descriptive attributes used to filter and group the fact table. One-to-many relationships were established between each dimension and the fact table, with a single cross-filter direction flowing from each dimension into the fact table.
 
@@ -102,4 +100,48 @@ Modelling challenges encountered:
 * Product ID is not reliably unique — 457 Product IDs (\~4.4% of all products) are each attached to two different products. Resolved the same way as the Region/Market issue: built a composite ProductKey (Product ID + Product Name) instead of trusting Product ID alone, avoiding an unintended many-to-many relationship.
 * Ship Date — the fact table has two dates (Order Date, Ship Date), but only Order Date is related to DimDate. Formally relating both would require marking one relationship inactive and invoking USERELATIONSHIP() in every Ship-Date-based measure ,added complexity not justified by this project's core questions, so Ship Date stays a plain fact attribute, used only to calculate ShippingDays.
 
+### DAX Measures
+
+1. Profit Margin %
+
+   * Calculates: Total Profit as a percentage of Total Sales for the current filter context.
+   * Why useful: Sales alone can hide low-margin or loss-making areas. This measure exposes true profitability.
+   * Main DAX functions: DIVIDE (with 0 fallback to avoid divide-by-zero errors).
+   * Filter context: Fully responsive — both \[Total Profit] and \[Total Sales] re-aggregate under the active filters before the division.
+   * Used in: Executive Overview (headline KPI card) and Diagnostic page (by Category/Market/Segment).
+2. Lost Sales Value
+
+   * Calculates: Total Sales from transactions flagged as Loss-Making (Profit ≤ 0).
+   * Why useful: Converts the abstract “26% of transactions lose money” into a concrete dollar amount management can act on.
+   * Main DAX functions: CALCULATE modifying \[Total Sales] with a filter on the Profit Status column.
+   * Filter context: CALCULATE adds the Profit Status filter on top of any existing context (e.g. Region or Date).
+   * Used in: Diagnostic page as a KPI card next to Total Sales.
+3. High-Discount Profit Margin %
+
+   * Calculates: Profit Margin % calculated only on transactions with Discount above 30%.
+   * Why useful: Directly tests whether heavy discounting drives the loss-making transactions. The gap versus overall margin is the key insight.
+   * Main DAX functions: VAR (for the threshold), CALCULATE, FILTER (row-level numeric condition).
+   * Filter context: FILTER iterates under the current context, then CALCULATE recomputes the margin only on the high-discount rows within that context.
+   * Used in: Diagnostic page, side-by-side with the standard Profit Margin % card.
+4. Category Profit Rank
+
+   * Calculates: Rank of the current Category by Total Profit (1 = most profitable), ignoring any Category filter on the visual.
+   * Why useful: A raw profit number does not show relative standing. Rank instantly shows which categories lead or lag.
+   * Main DAX functions: RANKX, ALL (to rank across all Categories), CALCULATE (for context transition).
+   * Filter context: ALL(DimProduct\[Category]) deliberately overrides Category filters so ranking always runs across all categories. Other filters (Region, Date) still apply.
+   * Used in: Product Analysis page, in a table alongside Category Sales Rank.
+5. YoY Sales Growth %
+
+   * Calculates: Percentage change in Sales versus the same period one year earlier.
+   * Why useful: Answers whether the business is actually growing, not just the absolute Sales figure for a single year.
+   * Main DAX functions: SAMEPERIODLASTYEAR, CALCULATE, DIVIDE.
+   * Filter context: Requires DimDate to be marked as the official Date table with a continuous calendar. SAMEPERIODLASTYEAR shifts the current date context back one year.
+   * Used in: Executive Overview as the headline trend indicator (line chart + KPI card).
+6. Performance Tier
+
+   * Calculates: A text label (“Loss-Making” / “Low Margin” / “Healthy” / “Strong”) based on the current Profit Margin %.
+   * Why useful: Gives managers an instant plain-language read on a KPI card without interpreting a raw percentage.
+   * Main DAX functions: SWITCH combined with TRUE() (condition-based pattern) that internally evaluates \[Profit Margin %].
+   * Filter context: Inherits whatever context \[Profit Margin %] is evaluated under, so the label updates correctly for the overall business or any sliced view.
+   * Used in: Executive Overview (colour-coded KPI card) and potentially for conditional formatting on Diagnostic page tables.
 
